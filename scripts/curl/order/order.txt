@@ -1,0 +1,54 @@
+# Order API
+
+# Place an order (user). Only ids and quantities — the server prices it.
+curl -X POST http://localhost:8080/api/v1/order/new \
+  -H "Authorization: Bearer <userToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_type": "delivery",
+    "items": [
+      { "menu_item": "<menuItemId>", "quantity": 2,
+        "selected_options": [{ "name": "Size", "label": "Full" }],
+        "notes": "less spicy" }
+    ],
+    "delivery_address": { "line1": "12 Park St", "city": "Kolkata", "pincode": "700016" },
+    "customer_notes": "ring the bell twice"
+  }'
+
+# My orders (user)
+curl -X POST http://localhost:8080/api/v1/order/my \
+  -H "Authorization: Bearer <userToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"pageNum":1,"pageSize":20,"filters":{"status":"delivered"}}'
+
+# One order
+curl http://localhost:8080/api/v1/order/<orderId> \
+  -H "Authorization: Bearer <userToken>"
+
+# Cancel (user)
+curl -X POST http://localhost:8080/api/v1/order/<orderId>/cancel \
+  -H "Authorization: Bearer <userToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"ordered by mistake"}'
+
+# All orders (admin)
+curl -X POST http://localhost:8080/api/v1/order/list \
+  -H "Authorization: Bearer <adminToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"pageNum":1,"pageSize":50,"filters":{"status":"placed"}}'
+
+# Advance status (admin) — must follow ORDER_STATUS_FLOW
+curl -X POST http://localhost:8080/api/v1/order/<orderId>/status \
+  -H "Authorization: Bearer <adminToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"confirmed"}'
+
+# Mark paid (admin)
+curl -X POST http://localhost:8080/api/v1/order/<orderId>/payment \
+  -H "Authorization: Bearer <adminToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"payment_status":"paid","payment_reference":"pay_XXXX"}'
+
+# Soft delete (admin)
+curl -X POST http://localhost:8080/api/v1/order/<orderId>/remove \
+  -H "Authorization: Bearer <adminToken>"

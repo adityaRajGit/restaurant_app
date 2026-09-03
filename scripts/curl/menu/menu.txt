@@ -1,0 +1,40 @@
+# Menu API
+
+# List (paginated + filters)
+curl -X POST http://localhost:8080/api/v1/menu/list \
+  -H "Content-Type: application/json" \
+  -d '{"pageNum":1,"pageSize":20,"filters":{"category":"Main Course","is_available":true}}'
+
+# Customer menu, grouped by category
+curl http://localhost:8080/api/v1/menu/grouped
+
+# One item
+curl http://localhost:8080/api/v1/menu/<menuItemId>
+
+# Create (admin, multipart)
+curl -X POST http://localhost:8080/api/v1/menu/new \
+  -H "Authorization: Bearer <adminToken>" \
+  -F "name=Paneer Butter Masala" \
+  -F "description=Cottage cheese in a rich tomato gravy" \
+  -F "price=320" \
+  -F "category=Main Course" \
+  -F "food_type=veg" \
+  -F "prep_time_minutes=20" \
+  -F 'options=[{"name":"Size","choices":[{"label":"Half","price_delta":0},{"label":"Full","price_delta":120}],"required":true}]' \
+  -F "images=@./paneer.jpg"
+
+# Update (admin)
+curl -X POST http://localhost:8080/api/v1/menu/<menuItemId>/update \
+  -H "Authorization: Bearer <adminToken>" \
+  -F "price=340" \
+  -F 'existingImages=["https://res.cloudinary.com/.../paneer.jpg"]'
+
+# 86 an item / bring it back (admin)
+curl -X POST http://localhost:8080/api/v1/menu/<menuItemId>/availability \
+  -H "Authorization: Bearer <adminToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"is_available":false}'
+
+# Delete (admin)
+curl -X POST http://localhost:8080/api/v1/menu/<menuItemId>/remove \
+  -H "Authorization: Bearer <adminToken>"

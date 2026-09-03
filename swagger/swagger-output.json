@@ -1,0 +1,12 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Restaurant App API",
+    "description": "Run `npm run swagger` to regenerate this file from the routes.",
+    "version": "0.1.0"
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "schemes": ["http", "https"],
+  "paths": {}
+}
