@@ -52,8 +52,7 @@ async function buildOrderItems(requestedItems) {
         items.push({
             menu_item: menuItem._id,
             name: menuItem.name,
-            // The menu stores paise; orders are denominated in rupees.
-            price: round2(menuItem.price_paise / 100),
+            price: round2(menuItem.price),
             quantity,
             selected_options: [],
             notes: requested.notes,

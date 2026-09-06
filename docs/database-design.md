@@ -248,7 +248,7 @@ const Schema = mongoose.Schema;
 const menuItemSchema = new Schema({
     name:        { type: String, required: true, trim: true },
     description: { type: String, trim: true },
-    price_paise: { type: Number, required: true, min: 0 },   // 24999 = Rs 249.99
+    price: { type: Number, required: true, min: 0 },           // 649.99 = Rs 649.99
     category:    { type: String, required: true, trim: true, index: true }, // "Starters"
     food_type:   { type: String, enum: ['veg', 'non_veg', 'egg'], default: 'veg' },
     image_url:   { type: String, trim: true },

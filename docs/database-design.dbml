@@ -39,7 +39,7 @@ Table menu_items {
   id            objectid [primary key]
   name          varchar  [not null]
   description   text
-  price_paise   integer  [not null, note: '24999 = Rs 249.99']
+  price         decimal  [not null, note: '649.99 = Rs 649.99']
   category      varchar  [not null, note: 'indexed - "Starters"']
   food_type     varchar  [not null, default: 'veg', note: 'veg | non_veg | egg']
   image_url     varchar
@@ -186,11 +186,11 @@ Records tables(id, number, label, seats, qr_token) {
   'tbl_p4', 'P4', 'Patio 4', 6, '77be0d1a5c9f3e42'
 }
 
-Records menu_items(id, name, price_paise, category, food_type, is_available) {
-  'mnu_01', 'Paneer Tikka', 24999, 'Starters', 'veg', true
-  'mnu_02', 'Butter Naan', 5999, 'Breads', 'veg', true
-  'mnu_03', 'Dal Makhani', 19999, 'Mains', 'veg', true
-  'mnu_04', 'Gulab Jamun', 8999, 'Desserts', 'veg', false
+Records menu_items(id, name, price, category, food_type, is_available) {
+  'mnu_01', 'Paneer Tikka', 249.99, 'Starters', 'veg', true
+  'mnu_02', 'Butter Naan', 59.99, 'Breads', 'veg', true
+  'mnu_03', 'Dal Makhani', 199.99, 'Mains', 'veg', true
+  'mnu_04', 'Gulab Jamun', 89.99, 'Desserts', 'veg', false
 }
 
 Records table_sessions(id, table_id, table_number, code, status, total_paise, opened_at) {
@@ -216,6 +216,6 @@ Records orders(id, order_number, session_id, table_id, table_number, guest_id, g
 }
 
 Records order_items(id, order_id, menu_item_id, name, unit_price_paise, quantity, line_total_paise, status) {
-  'oit_01', 'ord_1042', 'mnu_01', 'Paneer Tikka', 24999, 1, 24999, 'in_progress'
-  'oit_02', 'ord_1042', 'mnu_02', 'Butter Naan', 5999, 1, 5999, 'done'
+  'oit_01', 'ord_1042', 'mnu_01', 'Paneer Tikka', 249.99, 1, 24999, 'in_progress'
+  'oit_02', 'ord_1042', 'mnu_02', 'Butter Naan', 59.99, 1, 5999, 'done'
 }

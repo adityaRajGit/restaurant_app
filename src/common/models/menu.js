@@ -12,8 +12,8 @@ const menuItemSchema = new Schema({
         type: String,
         trim: true
     },
-    // Money is always an integer in paise: 24999 = Rs 249.99.
-    price_paise: {
+    // Rupees, e.g. 649.99 = Rs 649.99.
+    price: {
         type: Number,
         required: true,
         min: 0

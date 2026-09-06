@@ -131,3 +131,6 @@ dist
 
 # AI assistant artifacts
 context-snapshot.json
+
+.vercel
+.env*
