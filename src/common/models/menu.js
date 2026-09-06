@@ -12,8 +12,8 @@ const menuItemSchema = new Schema({
         type: String,
         trim: true
     },
-    // Price in the smallest practical unit the restaurant quotes in (rupees).
-    price: {
+    // Money is always an integer in paise: 24999 = Rs 249.99.
+    price_paise: {
         type: Number,
         required: true,
         min: 0
@@ -27,46 +27,24 @@ const menuItemSchema = new Schema({
     food_type: {
         type: String,
         enum: FOOD_TYPES,
+        required: true,
         default: VEG
     },
-    images: {
-        type: [String],
-        default: []
+    image_url: {
+        type: String,
+        trim: true
     },
-    // Minutes the kitchen typically needs for this item.
-    prep_time_minutes: {
+    // Drives the expected-ready time on the chef screen.
+    prep_minutes: {
         type: Number,
         min: 0,
-        default: 15
+        default: 10
     },
-    spice_level: {
-        type: Number,
-        min: 0,
-        max: 3,
-        default: 0
-    },
-    tags: {
-        type: [String],
-        default: []
-    },
-    // Choices a customer makes at order time (size, add-ons, ...).
-    options: [{
-        name: { type: String, required: true, trim: true },
-        choices: [{
-            label: { type: String, required: true, trim: true },
-            price_delta: { type: Number, default: 0 }
-        }],
-        required: { type: Boolean, default: false },
-        _id: false
-    }],
+    // Flipped off when the kitchen runs out.
     is_available: {
         type: Boolean,
-        default: true,
-        index: true
-    },
-    is_featured: {
-        type: Boolean,
-        default: false
+        required: true,
+        default: true
     },
     display_order: {
         type: Number,
@@ -74,6 +52,7 @@ const menuItemSchema = new Schema({
     },
     is_deleted: {
         type: Boolean,
+        required: true,
         default: false
     },
     created_at: {
@@ -86,7 +65,13 @@ const menuItemSchema = new Schema({
     }
 });
 
-menuItemSchema.index({ name: 'text', description: 'text', tags: 'text' });
+// Serves the customer menu read: live items, grouped by category, in display order.
+menuItemSchema.index(
+    { is_deleted: 1, is_available: 1, category: 1, display_order: 1 },
+    { name: 'customer_menu' }
+);
+
+menuItemSchema.index({ name: 'text', description: 'text' });
 
 menuItemSchema.set('versionKey', false);
 

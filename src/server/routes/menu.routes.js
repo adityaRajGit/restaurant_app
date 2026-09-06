@@ -79,12 +79,12 @@ router.route('/grouped').get(async (req, res) => {
     }
 });
 
-router.route('/new').post(protectRoutes.verifyAdmin, upload.fields([{ name: "images", maxCount: 5 }]), async (req, res) => {
+router.route('/new').post(protectRoutes.verifyAdmin, upload.single("image"), async (req, res) => {
     try {
         if (!_.isEmpty(req.body)) {
             let data = {
                 ...req.body,
-                images: req.files?.images || []
+                image: req.file || null
             };
             const outputResult = await addNewMenuItemHandler(data);
             res.status(responseStatus.STATUS_SUCCESS_OK);
@@ -131,13 +131,13 @@ router.route('/:id').get(async (req, res) => {
     }
 });
 
-router.route('/:id/update').post(protectRoutes.verifyAdmin, upload.fields([{ name: "images", maxCount: 5 }]), async (req, res) => {
+router.route('/:id/update').post(protectRoutes.verifyAdmin, upload.single("image"), async (req, res) => {
     try {
         if (!_.isEmpty(req.params.id) && !_.isEmpty(req.body)) {
             let input = {
                 objectId: req.params.id,
                 updateObject: req.body,
-                images: req.files?.images || []
+                image: req.file || null
             }
             const updateObjectResult = await updateMenuItemDetailsHandler(input);
             res.status(responseStatus.STATUS_SUCCESS_OK);

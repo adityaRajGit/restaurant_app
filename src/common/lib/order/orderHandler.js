@@ -49,31 +49,13 @@ async function buildOrderItems(requestedItems) {
             throw `invalid quantity for ${menuItem.name}`;
         }
 
-        const selectedOptions = [];
-        let optionDelta = 0;
-
-        for (const selected of requested.selected_options || []) {
-            const option = (menuItem.options || []).find((o) => o.name === selected.name);
-            const choice = option && (option.choices || []).find((c) => c.label === selected.label);
-
-            if (!choice) {
-                throw `invalid option "${selected.label}" for ${menuItem.name}`;
-            }
-
-            optionDelta += choice.price_delta || 0;
-            selectedOptions.push({
-                name: option.name,
-                label: choice.label,
-                price_delta: choice.price_delta || 0,
-            });
-        }
-
         items.push({
             menu_item: menuItem._id,
             name: menuItem.name,
-            price: round2(menuItem.price + optionDelta),
+            // The menu stores paise; orders are denominated in rupees.
+            price: round2(menuItem.price_paise / 100),
             quantity,
-            selected_options: selectedOptions,
+            selected_options: [],
             notes: requested.notes,
         });
     }

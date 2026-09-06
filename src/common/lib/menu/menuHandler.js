@@ -1,33 +1,20 @@
 import menuHelper from '../../helpers/menu.helper';
 import { v2 as cloudinary } from "cloudinary";
 
-async function uploadImages(files) {
-    const imageUrls = [];
-    if (files && files.length > 0) {
-        for (const file of files) {
-            const result = await cloudinary.uploader.upload(file.path, {
-                folder: "restaurantapp/menu",
-            });
-            imageUrls.push(result.secure_url);
-        }
-    }
-    return imageUrls;
-}
-
-function parseJsonField(value, fallback) {
-    if (value === undefined || value === null || value === "") return fallback;
-    if (typeof value !== "string") return value;
-    try {
-        return JSON.parse(value);
-    } catch (err) {
-        return fallback;
-    }
+async function uploadImage(file) {
+    if (!file) return null;
+    const result = await cloudinary.uploader.upload(file.path, {
+        folder: "restaurantapp/menu",
+    });
+    return result.secure_url;
 }
 
 export async function addNewMenuItemHandler(input) {
-    input.images = await uploadImages(input.images);
-    input.options = parseJsonField(input.options, []);
-    input.tags = parseJsonField(input.tags, []);
+    const imageUrl = await uploadImage(input.image);
+    delete input.image;
+    if (imageUrl) {
+        input.image_url = imageUrl;
+    }
 
     return await menuHelper.addObject(input);
 }
@@ -37,17 +24,9 @@ export async function getMenuItemDetailsHandler(input) {
 }
 
 export async function updateMenuItemDetailsHandler(input) {
-    const imageUrls = await uploadImages(input.images);
-    const existingImages = parseJsonField(input.updateObject.existingImages, []);
-
-    input.updateObject.images = [...existingImages, ...imageUrls];
-    delete input.updateObject.existingImages;
-
-    if (input.updateObject.options !== undefined) {
-        input.updateObject.options = parseJsonField(input.updateObject.options, []);
-    }
-    if (input.updateObject.tags !== undefined) {
-        input.updateObject.tags = parseJsonField(input.updateObject.tags, []);
+    const imageUrl = await uploadImage(input.image);
+    if (imageUrl) {
+        input.updateObject.image_url = imageUrl;
     }
     input.updateObject.updated_at = new Date();
 

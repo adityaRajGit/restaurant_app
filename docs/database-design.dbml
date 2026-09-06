@@ -1,0 +1,221 @@
+// Dine-In Ordering — database structure
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+//
+// The physical store is MongoDB (Mongoose). DBML has no concept of an embedded
+// array, so the three embedded sub-documents — session guests, cart items and
+// order items — are drawn here as their own tables joined back to their parent
+// by the parent's _id. In MongoDB they live INSIDE the parent document.
+// Money is always an integer in paise: 24999 = Rs 249.99.
+
+Table staff {
+  id            objectid  [primary key]
+  name          varchar   [not null]
+  email         varchar   [not null, unique, note: 'lowercased']
+  password      varchar   [not null, note: 'bcrypt hash']
+  role          varchar   [not null, note: 'admin | manager | chef | waiter']
+  is_active     boolean   [not null, default: true]
+  last_login_at timestamp
+  created_at    timestamp
+  updated_at    timestamp
+
+  Note: 'Back-of-house logins only. Diners never appear here.'
+}
+
+Table tables {
+  id         objectid [primary key]
+  number     varchar  [not null, unique, note: '"23", "P4"']
+  label      varchar
+  seats      integer  [default: 4]
+  qr_token   varchar  [not null, unique, note: 'randomBytes(16).hex - the QR encodes /t/<qr_token>, never the table number']
+  is_active  boolean  [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'A physical table. Created once, lives forever.'
+}
+
+Table menu_items {
+  id            objectid [primary key]
+  name          varchar  [not null]
+  description   text
+  price_paise   integer  [not null, note: '24999 = Rs 249.99']
+  category      varchar  [not null, note: 'indexed - "Starters"']
+  food_type     varchar  [not null, default: 'veg', note: 'veg | non_veg | egg']
+  image_url     varchar
+  prep_minutes  integer  [default: 10, note: 'drives expected-ready time on the chef screen']
+  is_available  boolean  [not null, default: true, note: 'flipped off when the kitchen runs out']
+  display_order integer  [default: 0]
+  is_deleted    boolean  [not null, default: false]
+  created_at    timestamp
+  updated_at    timestamp
+
+  Indexes {
+    (is_deleted, is_available, category, display_order) [name: 'customer_menu']
+  }
+}
+
+Table table_sessions {
+  id           objectid  [primary key]
+  table_id     objectid  [not null]
+  table_number varchar   [not null, note: 'denormalised so tickets print "TABLE 23" with no second lookup']
+  code         varchar   [not null, unique, note: 'short human code, e.g. "A7F3"']
+  status       varchar   [not null, default: 'open', note: 'open | closed']
+  total_paise  integer   [not null, default: 0, note: 'running bill across non-cancelled orders']
+  opened_at    timestamp
+  closed_at    timestamp
+  closed_by    objectid  [note: 'staff who closed the table']
+  created_at   timestamp
+  updated_at   timestamp
+
+  Indexes {
+    table_id            [unique, name: 'one_open_session_per_table', note: 'partial index: status = open - the race-condition guard']
+    (status, opened_at) [name: 'manager_grid']
+  }
+
+  Note: 'One party at one table for one meal. One session, many guests, many orders, one bill.'
+}
+
+// Embedded in table_sessions.guests[]
+Table session_guests {
+  id           objectid  [primary key, note: 'sub-document _id']
+  session_id   objectid  [not null]
+  display_name varchar   [default: 'Guest']
+  guest_token  varchar   [not null, note: 'secret in the phone cookie - a re-scan returns the diner to their own cart']
+  joined_at    timestamp
+
+  Indexes {
+    guest_token [name: 'returning_phone_lookup']
+  }
+
+  Note: 'Embedded. A party is small, bounded, and meaningless outside its sitting.'
+}
+
+Table carts {
+  id         objectid [primary key]
+  session_id objectid [not null]
+  guest_id   objectid [not null, note: '_id of the embedded guest']
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (session_id, guest_id) [unique]
+  }
+
+  Note: 'Own collection, not embedded: highest write churn in the app. No prices - the cart is priced from the live menu at checkout.'
+}
+
+// Embedded in carts.items[]
+Table cart_items {
+  cart_id      objectid [not null]
+  menu_item_id objectid [not null]
+  quantity     integer  [not null, note: 'min 1']
+  notes        varchar  [note: 'max 200 - "less spicy"']
+
+  Note: 'Embedded. Scratch paper - the kitchen never sees it.'
+}
+
+Table orders {
+  id            objectid  [primary key]
+  order_number  varchar   [not null, unique, note: '"1042" - called out on the floor']
+  session_id    objectid  [not null]
+  table_id      objectid  [not null]
+  table_number  varchar   [not null, note: 'denormalised for the ticket header']
+  guest_id      objectid  [not null, note: '_id of the embedded guest who ordered']
+  guest_name    varchar
+  status        varchar   [not null, default: 'placed', note: 'placed | preparing | ready | served | cancelled - rolled up from items[]']
+  total_paise   integer   [not null]
+  placed_at     timestamp
+  ready_at      timestamp
+  served_at     timestamp
+  cancelled_at  timestamp
+  cancel_reason varchar
+  created_at    timestamp
+  updated_at    timestamp
+
+  Indexes {
+    (status, placed_at)     [name: 'chef_queue_oldest_first']
+    (session_id, placed_at) [name: 'session_bill']
+  }
+}
+
+// Embedded in orders.items[]
+Table order_items {
+  id               objectid  [primary key, note: 'sub-document _id - the chef screen updates one line by id']
+  order_id         objectid  [not null]
+  menu_item_id     objectid  [not null]
+  name             varchar   [not null, note: 'COPIED from the menu at placement time']
+  unit_price_paise integer   [not null, note: 'COPIED - a later price change must never rewrite a placed bill']
+  quantity         integer   [not null]
+  line_total_paise integer   [not null, note: 'unit_price_paise * quantity']
+  notes            varchar
+  status           varchar   [not null, default: 'queued', note: 'queued | in_progress | done | cancelled']
+  started_at       timestamp
+  done_at          timestamp
+  handled_by       objectid  [note: 'which chef']
+
+  Note: 'Embedded. This is the line the chef flips to done.'
+}
+
+Ref session_of_table: table_sessions.table_id > tables.id   // many-to-one
+Ref session_closed_by: table_sessions.closed_by > staff.id  // many-to-one
+
+Ref: table_sessions.id < session_guests.session_id          // one-to-many (embedded)
+
+Ref: table_sessions.id < carts.session_id
+Ref: session_guests.id - carts.guest_id                     // one-to-one
+Ref: carts.id < cart_items.cart_id                          // one-to-many (embedded)
+Ref: menu_items.id < cart_items.menu_item_id
+
+Ref: table_sessions.id < orders.session_id
+Ref: tables.id < orders.table_id
+Ref: session_guests.id < orders.guest_id
+
+Ref: orders.id < order_items.order_id                       // one-to-many (embedded)
+Ref: menu_items.id < order_items.menu_item_id
+Ref: staff.id < order_items.handled_by
+
+Records staff(id, name, email, role) {
+  'stf_01', 'Anita Rao', 'anita@dine.in', 'manager'
+  'stf_02', 'Kabir Shah', 'kabir@dine.in', 'chef'
+  'stf_03', 'Meera Nair', 'meera@dine.in', 'waiter'
+}
+
+Records tables(id, number, label, seats, qr_token) {
+  'tbl_23', '23', 'Main hall 23', 4, 'a91c4f0e2b7d6813'
+  'tbl_p4', 'P4', 'Patio 4', 6, '77be0d1a5c9f3e42'
+}
+
+Records menu_items(id, name, price_paise, category, food_type, is_available) {
+  'mnu_01', 'Paneer Tikka', 24999, 'Starters', 'veg', true
+  'mnu_02', 'Butter Naan', 5999, 'Breads', 'veg', true
+  'mnu_03', 'Dal Makhani', 19999, 'Mains', 'veg', true
+  'mnu_04', 'Gulab Jamun', 8999, 'Desserts', 'veg', false
+}
+
+Records table_sessions(id, table_id, table_number, code, status, total_paise, opened_at) {
+  'ses_a7f3', 'tbl_23', '23', 'A7F3', 'open', 30998, '2026-09-04 20:12:00'
+  'ses_b2c9', 'tbl_23', '23', 'B2C9', 'closed', 45997, '2026-09-04 18:40:00'
+}
+
+Records session_guests(id, session_id, display_name, guest_token) {
+  'gst_01', 'ses_a7f3', 'Aditya', 'c3f9a1e07b2d4856'
+  'gst_02', 'ses_a7f3', 'Riya', '5d8e2c6b09a1f374'
+}
+
+Records carts(id, session_id, guest_id) {
+  'crt_01', 'ses_a7f3', 'gst_02'
+}
+
+Records cart_items(cart_id, menu_item_id, quantity, notes) {
+  'crt_01', 'mnu_03', 1, 'less spicy'
+}
+
+Records orders(id, order_number, session_id, table_id, table_number, guest_id, guest_name, status, total_paise) {
+  'ord_1042', '1042', 'ses_a7f3', 'tbl_23', '23', 'gst_01', 'Aditya', 'preparing', 30998
+}
+
+Records order_items(id, order_id, menu_item_id, name, unit_price_paise, quantity, line_total_paise, status) {
+  'oit_01', 'ord_1042', 'mnu_01', 'Paneer Tikka', 24999, 1, 24999, 'in_progress'
+  'oit_02', 'ord_1042', 'mnu_02', 'Butter Naan', 5999, 1, 5999, 'done'
+}

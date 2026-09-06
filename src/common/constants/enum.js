@@ -48,15 +48,12 @@ export const PAYMENT_STATUSES = [
 ];
 
 export const MENU_CATEGORIES = [
-  "Starters",
-  "Soups & Salads",
-  "Main Course",
+  "Cakes",
+  "Pastries",
+  "Cookies & Biscuits",
   "Breads",
-  "Rice & Biryani",
-  "Sides",
   "Desserts",
   "Beverages",
-  "Combos",
   "Other",
 ];
 
