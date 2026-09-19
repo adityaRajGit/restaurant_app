@@ -1,0 +1,56 @@
+# Manual Bill API
+# Requires a logged-in user whose User.type is "manager" or "staff".
+# Seed those accounts with: node scripts/seed-staff.js
+
+# 1. Log in to get a token
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"manager@restaurantapp.test","password":"Manager@123"}'
+
+# Copy data.token from the response into <token> below.
+
+# 2. Create a manual bill
+# Items are priced from the payload, not the menu - that is the point of a
+# manual bill. quantity defaults to 1 if omitted.
+curl -X POST http://localhost:8080/api/v1/bill/manual \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_name": "Aditya",
+    "discount": 0,
+    "items": [
+      { "name": "Paneer Butter Masala",  "price": 320, "quantity": 2 },
+      { "name": "Extra naan (off-menu)", "price": 40,  "quantity": 3 }
+    ]
+  }'
+
+# => subtotal 760, tax 38 (5%), discount 0, total 798
+
+# 3. Fetch a bill by id
+curl http://localhost:8080/api/v1/bill/<billId> \
+  -H "Authorization: Bearer <token>"
+
+
+# --- Expected failures ---
+
+# Customer token (or any non manager/staff user) -> 403
+curl -X POST http://localhost:8080/api/v1/bill/manual \
+  -H "Authorization: Bearer <customerToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_name":"X","items":[{"name":"A","price":10}]}'
+# => 403 {"message":"Access Denied: insufficient permissions"}
+
+# No token -> 403
+curl -X POST http://localhost:8080/api/v1/bill/manual \
+  -H "Content-Type: application/json" \
+  -d '{"customer_name":"X","items":[{"name":"A","price":10}]}'
+
+# Negative price -> rejected before it reaches the DB
+curl -X POST http://localhost:8080/api/v1/bill/manual \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_name":"X","items":[{"name":"Bad","price":-5}]}'
+# => {"status":"Error","data":{"message":"invalid price for Bad"}}
+
+# Other rejections: blank customer_name, empty items, unnamed item,
+# non-numeric price, fractional or zero quantity, negative discount.

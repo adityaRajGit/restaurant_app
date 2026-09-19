@@ -72,6 +72,7 @@ async function verifyUser(req, res, next) {
     }
 
     req.user = decoded;
+    req.userDoc = user;
     next();
   } catch (error) {
     console.error("Error in verifyUser middleware:", error);
@@ -79,10 +80,28 @@ async function verifyUser(req, res, next) {
   }
 }
 
+/**
+ * Gates a route to specific User.type values. Wraps verifyUser, so token
+ * parsing, the is_deleted check and the single DB read all happen once.
+ * Usage: protectRoutes.verifyUserType(MANAGER, STAFF)
+ */
+function verifyUserType(...allowedTypes) {
+  return (req, res, next) =>
+    verifyUser(req, res, () => {
+      if (!allowedTypes.includes(req.userDoc.type)) {
+        return res
+          .status(403)
+          .json({ message: "Access Denied: insufficient permissions" });
+      }
+      next();
+    });
+}
+
 const protectRoutes = {
   authenticateToken: authenticateToken,
   verifyAdmin: verifyAdmin,
   verifyUser: verifyUser,
+  verifyUserType: verifyUserType,
 };
 
 export default protectRoutes;

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { USER_TYPES, CUSTOMER } from '../constants/enum';
 const Schema = mongoose.Schema;
 
 const addressSchema = new Schema({
@@ -61,6 +62,13 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'MenuItem'
     }],
+
+    type: {
+        type: String,
+        enum: USER_TYPES,
+        default: CUSTOMER,
+        index: true
+    },
 
     status: {
         type: String,
