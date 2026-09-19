@@ -1,4 +1,5 @@
 {
+  "tax_rate": 0.05,
   "ios_version": "1.0.0",
   "android_version": "1.0.0",
   "featured_enabled": [""],

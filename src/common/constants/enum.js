@@ -2,6 +2,12 @@ export const USER = "User";
 export const ADMIN = "Admin";
 export const SUPERADMIN = "superadmin";
 export const MANAGER = "manager";
+export const STAFF = "staff";
+export const CUSTOMER = "customer";
+
+// What kind of person a User row is. Customers are the default; manager and
+// staff are back-office logins that share the customer auth flow.
+export const USER_TYPES = [CUSTOMER, MANAGER, STAFF];
 
 // Order lifecycle
 export const PLACED = "placed";

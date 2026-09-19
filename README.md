@@ -30,6 +30,7 @@ Other scripts:
 | `npm run start:prod` | run the transpiled build |
 | `npm test` | jest |
 | `npm run swagger` | regenerate `swagger/swagger-output.json` from the routes |
+| `node scripts/seed-staff.js` | seed local manager/staff logins for testing |
 
 ## Layout
 
@@ -49,6 +50,7 @@ src/
   util/                      cloudinary, passport
 scripts/crud/                generators that scaffold a new CRUD domain
 scripts/curl/                curl examples per domain
+scripts/seed-staff.js        seeds back-office logins for local testing
 ```
 
 Every domain follows the same four-file pattern: `models/x.js` →
@@ -132,11 +134,50 @@ placed → confirmed → preparing → ready → out_for_delivery → delivered
 Any transition outside that map is rejected, and every change is appended to
 the order's `status_history`.
 
+### Bill — `/api/v1/bill`
+
+Counter billing for walk-ins. Unlike an order, a **manual bill is priced from
+the payload** — staff type in the line items, so they can charge for something
+that is not on the menu. There is no `menu_item` reference and no customer
+account; the bill records only a name.
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| POST | `/manual` | manager/staff | create a manual bill |
+| GET | `/:id` | manager/staff | one bill |
+
+```json
+{
+  "customer_name": "Aditya",
+  "discount": 0,
+  "items": [
+    { "name": "Paneer Butter Masala",  "price": 320, "quantity": 2 },
+    { "name": "Extra naan (off-menu)", "price": 40,  "quantity": 3 }
+  ]
+}
+```
+
+Because the prices come from the client, the handler validates hard before
+anything reaches the database: `customer_name` must be non-empty, there must be
+at least one item, every `price` must be finite and `>= 0`, and every
+`quantity` must be a whole number `>= 1`. Totals are `subtotal + tax - discount`,
+floored at zero, with the tax rate read from `appConfig.tax_rate` — the same
+value orders use, so the two cannot drift.
+
+Curl examples: `scripts/curl/bill/bill.txt`.
+
 ### Admin — `/api/v1/admin`
 
 Admin signup/login and management, carried over from the base project. Admin
 JWTs are what `protectRoutes.verifyAdmin` checks; roles are `superadmin`,
 `Admin`, and `manager`.
+
+Back-office access comes in two flavours. `Admin` documents carry a `role` and
+are checked by `protectRoutes.verifyAdmin`. Separately, a `User` document
+carries a **`type`** — `customer` (the default), `manager`, or `staff` — checked
+by `protectRoutes.verifyUserType(...types)`, which gates the bill routes. The
+type is read from the database on every request rather than trusted from the
+JWT, so changing someone's type takes effect immediately.
 
 ## Notes
 
@@ -145,3 +186,8 @@ JWTs are what `protectRoutes.verifyAdmin` checks; roles are `superadmin`,
   the menu later never rewrites the history of an order already placed.
 - `JWT_SECRET`, mail, and Cloudinary credentials all come from the environment;
   nothing is hardcoded.
+- Manual bills are a separate collection from orders. Hosting them in `Order`
+  would have meant relaxing both `user.required` and `items.menu_item.required`,
+  weakening the invariants of the order history to store a different concept.
+- The CRUD generators in `scripts/crud/` are documented in
+  [`docs/code-generators.md`](docs/code-generators.md).

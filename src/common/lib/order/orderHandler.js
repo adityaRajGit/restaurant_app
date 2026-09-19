@@ -1,4 +1,5 @@
 import orderHelper from '../../helpers/order.helper';
+import appConfig from '../../constants/appConfig.json';
 import menuHelper from '../../helpers/menu.helper';
 import userHelper from '../../helpers/user.helper';
 import {
@@ -10,7 +11,7 @@ import {
 } from '../../constants/enum';
 import { sendOrderConfirmationEmail, sendOrderStatusEmail } from '../../util/utilHelper';
 
-const TAX_RATE = 0.05;
+const TAX_RATE = appConfig.tax_rate;
 const DELIVERY_FEE = 40;
 
 function generateOrderNumber() {

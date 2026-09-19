@@ -14,6 +14,7 @@ import otpRoutes from "../server/routes/otp.routes";
 import adminRoutes from "../server/routes/admin.routes";
 import menuRoutes from "../server/routes/menu.routes";
 import orderRoutes from "../server/routes/order.routes";
+import billRoutes from "../server/routes/bill.routes";
 
 const app = new Express();
 const http = require("http").Server(app);
@@ -139,6 +140,7 @@ app.use("/api/v1/otp", otpRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/menu", menuRoutes);
 app.use("/api/v1/order", orderRoutes);
+app.use("/api/v1/bill", billRoutes);
 
 app.use(
   "/api-docs",
